@@ -71,8 +71,8 @@ class FirebaseService : FirebaseMessagingService() {
             "Passing ${FirebaseMessageProps.NOTIFICATION_ID} to start Live Update is prohibited - it will be generated automatically."
           }
 
-          val (state, config) = getLiveUpdatesNotificationData(message)
-          liveUpdatesManager.startLiveUpdateNotification(state, config)
+//          val (state, config) = getLiveUpdatesNotificationData(message)
+//          liveUpdatesManager.startLiveUpdateNotification(state, config)
         }
         FirebaseMessageEvent.UPDATE,
         FirebaseMessageEvent.STOP -> {
@@ -81,8 +81,8 @@ class FirebaseService : FirebaseMessagingService() {
           }
 
           if (event == FirebaseMessageEvent.UPDATE) {
-            val (state, config) = getLiveUpdatesNotificationData(message)
-            liveUpdatesManager.updateLiveUpdateNotification(notificationId, state, config)
+//            val (state, config) = getLiveUpdatesNotificationData(message)
+//            liveUpdatesManager.updateLiveUpdateNotification(notificationId, state, config)
           } else {
             liveUpdatesManager.stopNotification(notificationId)
           }
@@ -102,31 +102,31 @@ class FirebaseService : FirebaseMessagingService() {
     return requireNotNull(event) { getMissingOrInvalidErrorMessage(FirebaseMessageProps.EVENT) }
   }
 
-  private fun getLiveUpdatesNotificationData(
-    message: RemoteMessage
-  ): Pair<LiveUpdateState, LiveUpdateConfig> {
-    return getLiveUpdateState(message) to getLiveUpdateConfig(message)
-  }
+//  private fun getLiveUpdatesNotificationData(
+//    message: RemoteMessage
+//  ): Pair<LiveUpdateState, LiveUpdateConfig> {
+//    return getLiveUpdateState(message) to getLiveUpdateConfig(message)
+//  }
 
-  private fun getLiveUpdateState(message: RemoteMessage): LiveUpdateState {
-    val title = message.data[FirebaseMessageProps.TITLE]
-    val progress = getProgress(message)
-
-    val image = message.data[FirebaseMessageProps.IMAGE_URL]?.let { LiveUpdateImage(it, true) }
-    val icon = message.data[FirebaseMessageProps.ICON_URL]?.let { LiveUpdateImage(it, true) }
-
-    return LiveUpdateState(
-      title = requireNotNull(title) { getMissingOrInvalidErrorMessage(FirebaseMessageProps.TITLE) },
-      text = message.data[FirebaseMessageProps.TEXT],
-      subText = message.data[FirebaseMessageProps.SUB_TEXT],
-      image = image,
-      icon = icon,
-      progress = progress,
-      shortCriticalText = message.data[FirebaseMessageProps.SHORT_CRITICAL_TEXT],
-      showTime = message.data[FirebaseMessageProps.SHOW_TIME]?.toBooleanStrictOrNull(),
-      time = message.data[FirebaseMessageProps.TIME]?.toLongOrNull(),
-    )
-  }
+//  private fun getLiveUpdateState(message: RemoteMessage): LiveUpdateState {
+//    val title = message.data[FirebaseMessageProps.TITLE]
+//    val progress = getProgress(message)
+//
+//    val image = message.data[FirebaseMessageProps.IMAGE_URL]?.let { LiveUpdateImage(it, true) }
+//    val icon = message.data[FirebaseMessageProps.ICON_URL]?.let { LiveUpdateImage(it, true) }
+//
+//    return LiveUpdateState(
+//      title = requireNotNull(title) { getMissingOrInvalidErrorMessage(FirebaseMessageProps.TITLE) },
+//      text = message.data[FirebaseMessageProps.TEXT],
+//      subText = message.data[FirebaseMessageProps.SUB_TEXT],
+//      image = image,
+//      icon = icon,
+//      progress = progress,
+//      shortCriticalText = message.data[FirebaseMessageProps.SHORT_CRITICAL_TEXT],
+//      showTime = message.data[FirebaseMessageProps.SHOW_TIME]?.toBooleanStrictOrNull(),
+//      time = message.data[FirebaseMessageProps.TIME]?.toLongOrNull(),
+//    )
+//  }
 
   private fun getProgress(message: RemoteMessage): LiveUpdateProgress? {
     val progressMax = message.data[FirebaseMessageProps.PROGRESS_MAX]?.toIntOrNull()

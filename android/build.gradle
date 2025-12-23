@@ -85,4 +85,7 @@ dependencies {
 
   // Manage JSON
   implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0'
+
+    //constraint
+    implementation "androidx.constraintlayout:constraintlayout:2.1.4"
 }

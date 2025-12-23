@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SetInc</string>
+    <string name="stopwatch_1">Stopwatch-1</string>
+    <string name="stopIcon">stopIcon</string>
+    <string name="pause">Pause</string>
+    <string name="restart_button">restart_button</string>
+    <string name="flag_button">flag\n</string>
+    <string name="play_pause_button">play</string>
+    <string name="lap_0">lap</string>
+</resources>
