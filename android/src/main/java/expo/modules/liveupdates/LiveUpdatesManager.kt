@@ -16,10 +16,8 @@ import android.widget.RemoteViews
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.graphics.drawable.IconCompat
 import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
-import com.google.android.datatransport.runtime.scheduling.persistence.EventStoreModule_PackageNameFactory.packageName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -67,58 +65,58 @@ class LiveUpdatesManager(private val context: Context) {
         }
     }
 
-    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
-    fun startLiveUpdateNotification(
-        state: LiveUpdateState,
-        config: LiveUpdateConfig? = null
-    ): Int? {
-        val notificationId = idGenerator.generateNextId()
-
-        if (notificationExists(notificationId)) {
-            Log.w(
-                TAG,
-                "failed to start notification - notification with id $notificationId already exists",
-            )
-            return null
-        }
-
-        val notification = createNotification(state, notificationId, config)
-        notificationManager.notify(notificationId, notification)
-        NotificationStateEventEmitter.emit(notificationId, NotificationAction.STARTED)
-        return notificationId
-    }
-
-    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
-    fun updateLiveUpdateNotification(
-        notificationId: Int,
-        state: LiveUpdateState,
-        config: LiveUpdateConfig?,
-    ) {
-        if (!notificationExists(notificationId)) {
-            Log.w(
-                TAG,
-                "failed to update notification - notification with id $notificationId does not exists",
-            )
-            return
-        }
-
-        val notification = createNotification(state, notificationId, config)
-        notificationManager.notify(notificationId, notification)
-        NotificationStateEventEmitter.emit(notificationId, NotificationAction.UPDATED)
-    }
-
-    fun stopNotification(notificationId: Int) {
-        if (!notificationExists(notificationId)) {
-            Log.w(
-                TAG,
-                "failed to stop notification - notification with id $notificationId does not exists",
-            )
-            return
-        }
-
-        notificationManager.cancel(notificationId)
-        NotificationStateEventEmitter.emit(notificationId, NotificationAction.STOPPED)
-    }
+//    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+//    fun startLiveUpdateNotification(
+//        state: LiveUpdateState,
+//        config: LiveUpdateConfig? = null
+//    ): Int? {
+//        val notificationId = idGenerator.generateNextId()
+//
+//        if (notificationExists(notificationId)) {
+//            Log.w(
+//                TAG,
+//                "failed to start notification - notification with id $notificationId already exists",
+//            )
+//            return null
+//        }
+//
+//        val notification = createNotification(state, notificationId, config)
+//        notificationManager.notify(notificationId, notification)
+//        NotificationStateEventEmitter.emit(notificationId, NotificationAction.STARTED)
+//        return notificationId
+//    }
+//
+//    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+//    fun updateLiveUpdateNotification(
+//        notificationId: Int,
+//        state: LiveUpdateState,
+//        config: LiveUpdateConfig?,
+//    ) {
+//        if (!notificationExists(notificationId)) {
+//            Log.w(
+//                TAG,
+//                "failed to update notification - notification with id $notificationId does not exists",
+//            )
+//            return
+//        }
+//
+//        val notification = createNotification(state, notificationId, config)
+//        notificationManager.notify(notificationId, notification)
+//        NotificationStateEventEmitter.emit(notificationId, NotificationAction.UPDATED)
+//    }
+//
+//    fun stopNotification(notificationId: Int) {
+//        if (!notificationExists(notificationId)) {
+//            Log.w(
+//                TAG,
+//                "failed to stop notification - notification with id $notificationId does not exists",
+//            )
+//            return
+//        }
+//
+//        notificationManager.cancel(notificationId)
+//        NotificationStateEventEmitter.emit(notificationId, NotificationAction.STOPPED)
+//    }
 
     private fun notificationExists(notificationId: Int): Boolean {
         return notificationManager.activeNotifications.any { it.id == notificationId }

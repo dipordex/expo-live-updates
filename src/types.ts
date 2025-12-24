@@ -50,6 +50,18 @@ export type LiveUpdateState = {
 export type LiveUpdateConfig = {
   deepLinkUrl?: string
   iconBackgroundColor?: string // only SDK < 16
+  apiEndpoint?: ApiEndpoint
+  accessToken?: string
+  backgroundColor?: string
+}
+
+type ApiEndpoint = {
+  stopwatchEndpoints?: StopwatchEndpoints
+}
+
+type StopwatchEndpoints = {
+  common: String
+  lap: String
 }
 
 export type TokenChangeEvent = {
@@ -60,6 +72,13 @@ export type NotificationStateChangeEvent = {
   notificationId: number
   action: 'dismissed' | 'updated' | 'started' | 'stopped' | 'clicked'
   timestamp: number
+}
+
+export type ActionStateEvent = {
+  activityAction?: string
+  stopwatchId?: string
+  timerId?: string
+  mode?: string
 }
 
 export type NotificationStateChangeListener = (

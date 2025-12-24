@@ -2,6 +2,7 @@ import { NativeModule, requireOptionalNativeModule } from 'expo'
 import type { EventSubscription } from 'react-native'
 
 import type {
+  ActionStateEvent,
   LiveUpdateConfig,
   LiveUpdateState,
   NotificationStateChangeEvent,
@@ -11,6 +12,7 @@ import type {
 type ExpoLiveUpdatesModuleEvents = {
   onNotificationStateChange: (event: NotificationStateChangeEvent) => void
   onTokenChange: (event: TokenChangeEvent) => void
+  onButtonPressed: (event: ActionStateEvent) => void
 }
 declare class ExpoLiveUpdatesModule extends NativeModule<ExpoLiveUpdatesModuleEvents> {
   startLiveUpdate: (state: LiveUpdateState, config?: LiveUpdateConfig) => number
@@ -22,6 +24,7 @@ declare class ExpoLiveUpdatesModule extends NativeModule<ExpoLiveUpdatesModuleEv
   ) => void
   addNotificationStateChangeListener: () => EventSubscription | undefined
   addTokenChangeListener: () => EventSubscription | undefined
+  addLiveUpdateActionListener: () => EventSubscription | undefined
 }
 
 const module = requireOptionalNativeModule<ExpoLiveUpdatesModule>(

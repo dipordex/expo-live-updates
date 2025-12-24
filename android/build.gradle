@@ -1,6 +1,7 @@
 plugins {
   id 'com.android.library'
   id 'org.jetbrains.kotlin.plugin.serialization' version '2.2.21'
+  id 'kotlin-parcelize'
 }
 
 group = 'expo.modules.liveupdates'
@@ -89,4 +90,6 @@ dependencies {
   //retrofit-api
   implementation 'com.squareup.retrofit2:retrofit:3.0.0'
   implementation 'com.squareup.retrofit2:converter-gson:3.0.0'
+
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
 }

@@ -3,6 +3,7 @@ import { Platform } from 'react-native'
 
 import ExpoLiveUpdatesModule from './ExpoLiveUpdatesModule'
 import type {
+  ActionStateEvent,
   LiveUpdateConfig,
   LiveUpdateState,
   NotificationStateChangeEvent,
@@ -93,6 +94,16 @@ export function addNotificationStateChangeListener(
   if (assertAndroid('addNotificationStateChangeListener')) {
     return ExpoLiveUpdatesModule?.addListener(
       'onNotificationStateChange',
+      listener,
+    )
+  }
+}
+export function addLiveUpdateActionListener(
+  listener: (event: ActionStateEvent) => void,
+): Voidable<EventSubscription> {
+  if (assertAndroid('addLiveUpdateActionListener')) {
+    return ExpoLiveUpdatesModule?.addListener(
+      'onButtonPressed',
       listener,
     )
   }

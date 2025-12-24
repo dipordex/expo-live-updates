@@ -1,7 +1,11 @@
 package expo.modules.liveupdates
 
+import android.os.Bundle
+import android.os.Parcelable
+import android.util.Log
 import expo.modules.kotlin.records.Field
 import expo.modules.kotlin.records.Record
+import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 import java.util.Date
 
@@ -30,11 +34,11 @@ data class LiveUpdateState(
     @Field var stopwatch: Stopwatch?,
     @Field var timer: Timer?,
     @Field var showInDynamicIsland: Boolean?,
-    ) : Record
+) : Record
 
 data class Stopwatch(
     @Field var id: String,
-    @Field var startedAt: Date?,
+    @Field var startedAt: Long?,
     @Field var accumulated: Double,
     @Field var isRunning: Boolean,
     @Field var lapCount: Int,
@@ -47,14 +51,59 @@ data class Timer(
     @Field var isRunning: Boolean?,
     @Field var endsAt: Date?,
     @Field var startTime: Date?,
-): Record
+) : Record
 
-class LiveUpdateConfig(
+@Parcelize
+data class LiveUpdateConfig(
     @Field val deepLinkUrl: String? = null,
     @Field val iconBackgroundColor: String? = null,
-) : Record
+    @Field val backgroundColor: String? =null,
+    @Field val accessToken: String? = null,
+    @Field val apiEndpoint: ApiEndpoint?
+) : Record, Parcelable
+
+@Parcelize
+data class ApiEndpoint(
+    @Field var stopwatchEndpoints: StopwatchEndpoints?
+) : Record, Parcelable
+
+@Parcelize
+data class StopwatchEndpoints(
+    @Field var common: String,
+    @Field var lap: String
+) : Record, Parcelable
 
 object LiveUpdatesModuleEvents {
     const val ON_TOKEN_CHANGE = "onTokenChange"
     const val ON_NOTIFICATION_STATE_CHANGE = "onNotificationStateChange"
+    const val ON_BUTTON_PRESSED = "onButtonPressed"
 }
+
+object NotificationStateTriggredEventEmitter {
+    var sendEvent: ((String, Bundle) -> Unit)? = null
+
+    fun emit(
+        notificationId: Int?,
+        action: String?,
+        mode: String?,
+    ) {
+        val payload = Bundle().apply {
+            putString("activityAction", action)
+            putInt("stopwatchId", notificationId ?: -1)
+            putInt("timerId", notificationId ?: -1)
+            putString("mode", mode)
+        }
+        Log.d("It is triggreded",mode!!)
+        sendEvent?.invoke(
+            LiveUpdatesModuleEvents.ON_BUTTON_PRESSED,
+            payload
+        )
+    }
+}
+
+
+data class LapObject(
+    @Field var name:String,
+    @Field var duration:Int,
+    @Field var stopwatch:Int
+)

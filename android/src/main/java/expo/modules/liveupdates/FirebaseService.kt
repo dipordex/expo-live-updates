@@ -84,7 +84,7 @@ class FirebaseService : FirebaseMessagingService() {
 //            val (state, config) = getLiveUpdatesNotificationData(message)
 //            liveUpdatesManager.updateLiveUpdateNotification(notificationId, state, config)
           } else {
-            liveUpdatesManager.stopNotification(notificationId)
+//            liveUpdatesManager.stopNotification(notificationId)
           }
         }
       }
@@ -152,12 +152,12 @@ class FirebaseService : FirebaseMessagingService() {
     } else null
   }
 
-  private fun getLiveUpdateConfig(message: RemoteMessage): LiveUpdateConfig {
-    return LiveUpdateConfig(
-      deepLinkUrl = message.data[FirebaseMessageProps.DEEP_LINK_URL],
-      iconBackgroundColor = message.data[FirebaseMessageProps.ICON_BACKGROUND_COLOR],
-    )
-  }
+//  private fun getLiveUpdateConfig(message: RemoteMessage): LiveUpdateConfig {
+//    return LiveUpdateConfig(
+//      deepLinkUrl = message.data[FirebaseMessageProps.DEEP_LINK_URL],
+//      iconBackgroundColor = message.data[FirebaseMessageProps.ICON_BACKGROUND_COLOR],
+//    )
+//  }
 
   private fun getMissingOrInvalidErrorMessage(propName: String): String {
     return "Property $propName is missing or invalid."
