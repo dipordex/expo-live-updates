@@ -13,6 +13,23 @@ export type LiveUpdateProgressSegment = {
   color?: string
 }
 
+type StopWatch = {
+  id: string;
+  startedAt: number | null;
+  accumulated: number;
+  isRunning: boolean;
+  lapCount: number;
+}
+
+type Timer = {
+  id?: string;
+  duration?: number;
+  remaining?: number;
+  isRunning?: boolean;
+  endsAt?: number;
+  startTime?: number | null;
+}
+
 export type LiveUpdateProgress = {
   max?: number
   progress?: number
@@ -23,14 +40,11 @@ export type LiveUpdateProgress = {
 
 export type LiveUpdateState = {
   title: string
-  text?: string
-  subText?: string
-  image?: LiveUpdateImage
-  icon?: LiveUpdateImage
-  progress?: LiveUpdateProgress
-  shortCriticalText?: string
-  showTime?: boolean
-  time?: number
+  subtitle?: string
+  mode?: string
+  stopwatch?: StopWatch
+  timer?: Timer
+  showInDynamicIsland?: boolean
 }
 
 export type LiveUpdateConfig = {

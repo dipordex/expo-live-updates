@@ -15,6 +15,12 @@ import android.view.View
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.toColorInt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class LiveStopWatchService : Service() {
 
@@ -53,11 +59,33 @@ class LiveStopWatchService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())
     private val timerStates = mutableMapOf<Int, TimerState>()
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Service created")
         createChannel()
+    }
+
+    private val apiService: ApiServices by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://app.setinfinite.com/api")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiServices::class.java)
+    }
+
+    private fun postStopWatchStatus(id:Int,status: String) {
+        serviceScope.launch {
+            try {
+                val response = apiService.postStopWatchStatus(id,status)
+                if (response.isSuccessful && response.body() != null) {
+                    Log.d("ResponseData:", "is Successful")
+                }
+            } catch (e: Exception) {
+                Log.e("ResponseData", "Error: ${e.message}")
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
