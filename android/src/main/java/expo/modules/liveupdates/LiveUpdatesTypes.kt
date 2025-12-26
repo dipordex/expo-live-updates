@@ -49,8 +49,8 @@ data class Timer(
     @Field var duration: Double?,
     @Field var remaining: Double?,
     @Field var isRunning: Boolean?,
-    @Field var endsAt: Date?,
-    @Field var startTime: Date?,
+    @Field var endsAt: Long?,
+    @Field var startTime: Long?,
 ) : Record
 
 @Parcelize

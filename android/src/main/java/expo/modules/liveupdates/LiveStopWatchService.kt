@@ -404,8 +404,17 @@ class LiveStopWatchService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-    private fun formatTime(sec: Int): String =
-        "%02d:%02d".format(sec / 60, sec % 60)
+    private fun formatTime(sec: Int): String {
+        val hours = sec / 3600
+        val minutes = (sec % 3600) / 60
+        val seconds = sec % 60
+
+        return if (hours > 0) {
+            "%02d:%02d:%02d".format(hours, minutes, seconds)
+        } else {
+            "%02d:%02d".format(minutes, seconds)
+        }
+    }
 
     private fun createChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

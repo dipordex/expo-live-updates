@@ -20,6 +20,16 @@
                 android:value="stopwatch" />
         </service>
 
+        <service
+            android:name=".LiveTimerService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="timer" />
+        </service>
+
         <!-- Notification dismissed receiver -->
         <receiver
             android:name=".NotificationDismissedReceiver"
