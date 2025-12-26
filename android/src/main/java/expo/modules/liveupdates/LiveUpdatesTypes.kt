@@ -39,7 +39,7 @@ data class LiveUpdateState(
 data class Stopwatch(
     @Field var id: String,
     @Field var startedAt: Long?,
-    @Field var accumulated: Double,
+    @Field var accumulated: Long,
     @Field var isRunning: Boolean,
     @Field var lapCount: Int,
 ) : Record

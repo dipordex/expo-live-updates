@@ -231,8 +231,13 @@ class ExpoLiveUpdatesModule : Module() {
                 Log.d(MODULE_TAG, "  lapCount: ${stopwatch.lapCount}")
                 Log.d(MODULE_TAG, "  startedAt: ${stopwatch.startedAt}")
 
+                val elapsedSeconds = runningStartSeconds(
+                    stopwatch.startedAt,
+                    stopwatch.accumulated
+                )
+                Log.d(MODULE_TAG, "Time Diffrenc: ${elapsedSeconds}")
                 putExtra(LiveStopWatchService.EXTRA_IS_RUNNING, stopwatch.isRunning)
-                putExtra(LiveStopWatchService.EXTRA_ACCUMULATED, stopwatch.accumulated)
+                putExtra(LiveStopWatchService.EXTRA_ACCUMULATED, elapsedSeconds)
                 putExtra(LiveStopWatchService.EXTRA_LAP_COUNT, stopwatch.lapCount)
                 putExtra(LiveStopWatchService.EXTRA_CONFIG,config)
                 putExtra(LiveStopWatchService.EXTRA_TITLE, state.title)
@@ -275,6 +280,16 @@ class ExpoLiveUpdatesModule : Module() {
         }
     }
 
+    fun runningStartSeconds(
+        startedAtMillis: Long?,
+        accumulatedSeconds: Long
+    ): Long {
+        if (startedAtMillis == null) return 0L
+        val nowMillis = System.currentTimeMillis()
+        return ((nowMillis - startedAtMillis ) / 1000)
+            .coerceAtLeast(0)
+    }
+
     private fun stopTimerService(context: Context, notificationId: Int) {
         Log.d(MODULE_TAG, "stopTimerService called for ID: $notificationId")
 
@@ -303,7 +318,7 @@ class ExpoLiveUpdatesModule : Module() {
                 Log.d(MODULE_TAG, "Detected Lap")
                 LiveStopWatchService.ACTION_LAP
             }
-            stopwatch.accumulated == 0.0 && !stopwatch.isRunning -> {
+            stopwatch.accumulated == 0L && !stopwatch.isRunning -> {
                 // Restart case: accumulated is 0, want to start fresh
                 Log.d(MODULE_TAG, "Detected RESTART (accumulated=0, isRunning=true)")
                 LiveStopWatchService.ACTION_RESTART

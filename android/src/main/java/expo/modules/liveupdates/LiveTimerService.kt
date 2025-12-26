@@ -50,7 +50,7 @@ class LiveTimerService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())
     private val timerStates = mutableMapOf<Int, TimerState>()
-    private var bgColor: String? = "#1B4332"
+//    private var bgColor: String? = "#1B4332"
 
     override fun onCreate() {
         super.onCreate()
@@ -98,10 +98,10 @@ class LiveTimerService : Service() {
 
         Log.d(TAG, "Config: $config")
 
-        if (config?.backgroundColor != null) {
-            bgColor = config.backgroundColor
-            Log.d(TAG, "Background color set to: $bgColor")
-        }
+//        if (config?.backgroundColor != null) {
+//            bgColor = config.backgroundColor
+//            Log.d(TAG, "Background color set to: $bgColor")
+//        }
 
         when (intent?.action) {
             ACTION_START -> {
@@ -129,13 +129,13 @@ class LiveTimerService : Service() {
     }
 
 
-    private fun safeBgColor(): Int {
-        return try {
-            (bgColor ?: "#1B4332").toColorInt()
-        } catch (e: Exception) {
-            "#1B4332".toColorInt()
-        }
-    }
+//    private fun safeBgColor(): Int {
+//        return try {
+//            (bgColor ?: "#1B4332").toColorInt()
+//        } catch (e: Exception) {
+//            "#1B4332".toColorInt()
+//        }
+//    }
 
     private fun startTimer(intent: Intent, notificationId: Int) {
         Log.d(TAG, "startTimer called for ID: $notificationId")
@@ -251,10 +251,10 @@ class LiveTimerService : Service() {
         val rv = RemoteViews(packageName, R.layout.notification_timer)
         rv.setTextViewText(R.id.tvTimer, formatTime(state.remaining.toInt()))
         rv.setTextViewText(R.id.tvTitle, timerStates[id]?.title)
-        rv.setViewBackgroundColor(
-            R.id.llMain,
-            safeBgColor()
-        )
+//        rv.setViewBackgroundColor(
+//            R.id.llMain,
+//            safeBgColor()
+//        )
         rv.setImageViewResource(
             R.id.ivPlay1,
             if (state.isRunning) R.drawable.ic_pause else R.drawable.ic_play
@@ -274,12 +274,9 @@ class LiveTimerService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_timer)
-            .setCustomContentView(rv)
             .setCustomBigContentView(rv)
             .setOnlyAlertOnce(true)
             .setOngoing(true)
-            .setColor(safeBgColor())
-            .setColorized(true)
             .build()
     }
 

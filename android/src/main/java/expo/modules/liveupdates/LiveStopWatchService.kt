@@ -44,14 +44,12 @@ class LiveStopWatchService : Service() {
         const val EXTRA_IS_RUNNING = "isRunning"
         const val EXTRA_ACCUMULATED = "accumulated"
         const val EXTRA_LAP_COUNT = "EXTRA_LAP_COUNT"
-
-        // ✅ ADDED
         const val EXTRA_FROM_NOTIFICATION = "from_notification"
     }
 
     private data class TimerState(
         var id: String,
-        var accumulated: Double,
+        var accumulated: Long,
         var isRunning: Boolean,
         var lapCount: Int,
         var startedAt: Long?,
@@ -63,19 +61,19 @@ class LiveStopWatchService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val timerStates = mutableMapOf<Int, TimerState>()
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private var bgColor: String? = "#1B4332"
+//    private var bgColor: String? = "#1B4332"
     private var apiServiceForStopWatch: ApiServices? = null
     private var apiServiceForLapCount: ApiServices? = null
 
     override fun onCreate() {
         super.onCreate()
-        createChannel()
+        // Don't create a single channel here anymore
+        Log.d(TAG, "Service onCreate - channels will be created per notification")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notificationId = intent?.getIntExtra(EXTRA_NOTIFICATION_ID, -1) ?: -1
 
-        // ✅ ADDED
         val fromNotification =
             intent?.getBooleanExtra(EXTRA_FROM_NOTIFICATION, false) == true
 
@@ -86,9 +84,9 @@ class LiveStopWatchService : Service() {
                 @Suppress("DEPRECATION")
                 intent?.getParcelableExtra(EXTRA_CONFIG)
             }
-        if (config?.backgroundColor != null) {
-            bgColor = config.backgroundColor
-        }
+//        if (config?.backgroundColor != null) {
+//            bgColor = config.backgroundColor
+//        }
         if (apiServiceForStopWatch == null && config != null) {
             apiServiceForStopWatch = createApiServiceForStopWatch(config)
         }
@@ -107,18 +105,56 @@ class LiveStopWatchService : Service() {
 
         return START_NOT_STICKY
     }
-    private fun safeBgColor(): Int {
-        return try {
-            (bgColor ?: "#1B4332").toColorInt()
-        } catch (e: Exception) {
-            "#1B4332".toColorInt()
+
+    // ✅ NEW: Get unique channel ID for each notification
+    private fun getChannelIdForNotification(notificationId: Int): String {
+        return "${CHANNEL_ID}_$notificationId"
+    }
+
+    // ✅ NEW: Create channel for specific notification
+    private fun createChannelForNotification(notificationId: Int, title: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channelId = getChannelIdForNotification(notificationId)
+            val channelName = "Timer: $title"
+
+            val channel = NotificationChannel(
+                channelId,
+                channelName,
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Stopwatch notification for $title"
+                setShowBadge(false)
+            }
+
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager?.createNotificationChannel(channel)
+
+            Log.d(TAG, "Created channel: $channelId for notification: $notificationId")
         }
     }
+
+    // ✅ NEW: Delete channel when notification is removed
+    private fun deleteChannelForNotification(notificationId: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channelId = getChannelIdForNotification(notificationId)
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager?.deleteNotificationChannel(channelId)
+
+            Log.d(TAG, "Deleted channel: $channelId for notification: $notificationId")
+        }
+    }
+
+//    private fun safeBgColor(): Int {
+//        return try {
+//            (bgColor ?: "#1B4332").toColorInt()
+//        } catch (e: Exception) {
+//            "#1B4332".toColorInt()
+//        }
+//    }
 
     // ---------------- API ----------------
 
     private fun createApiServiceForStopWatch(config: LiveUpdateConfig): ApiServices {
-
         val logging = HttpLoggingInterceptor { Log.d("API_HTTP", it) }
             .apply { level = HttpLoggingInterceptor.Level.BODY }
 
@@ -145,7 +181,6 @@ class LiveStopWatchService : Service() {
     }
 
     private fun createApiServiceForLapCount(config: LiveUpdateConfig): ApiServices {
-
         val logging = HttpLoggingInterceptor { Log.d("API_HTTP", it) }
             .apply { level = HttpLoggingInterceptor.Level.BODY }
 
@@ -207,7 +242,11 @@ class LiveStopWatchService : Service() {
         }
 
         val title = intent.getStringExtra(EXTRA_TITLE) ?: "Timer"
-        val accumulated = intent.getDoubleExtra(EXTRA_ACCUMULATED, 0.0)
+
+        val accumulated = intent.getLongExtra(EXTRA_ACCUMULATED, 0L)
+        Log.d("LVS", accumulated.toString())
+        // ✅ Create unique channel for this notification
+        createChannelForNotification(notificationId, title)
 
         val runnable = object : Runnable {
             override fun run() {
@@ -276,6 +315,10 @@ class LiveStopWatchService : Service() {
             handler.removeCallbacks(runnable)
             timerStates.remove(id)
             getSystemService(NotificationManager::class.java)?.cancel(id)
+
+            // ✅ Delete the channel when notification is stopped
+            deleteChannelForNotification(id)
+
             if (fromNotification) {
                 postStopWatchStatus(id, "stop")
                 NotificationStateTriggredEventEmitter.emit(
@@ -305,18 +348,14 @@ class LiveStopWatchService : Service() {
 
     private fun restartTimer(id: Int,fromNotification: Boolean) {
         timerStates[id]?.apply {
-            // ✅ fully reset state
-            accumulated = 0.0
+            accumulated = 0L
             lapCount = 0
             isRunning = false
             if (startedAt == null) {
                 startedAt = System.currentTimeMillis()
             }
 
-            // ✅ stop any running callbacks
             handler.removeCallbacks(runnable)
-
-            // ✅ update UI immediately
             updateNotification(id)
             if (fromNotification) {
                 postStopWatchStatus(id,"reset")
@@ -329,7 +368,6 @@ class LiveStopWatchService : Service() {
         }
     }
 
-
     // ---------------- UI ----------------
 
     private fun updateNotification(id: Int) {
@@ -338,60 +376,49 @@ class LiveStopWatchService : Service() {
     }
 
     private fun buildNotification(id: Int): Notification {
-        val state = timerStates[id] ?: return NotificationCompat.Builder(this, CHANNEL_ID).build()
+        val state = timerStates[id] ?: return NotificationCompat.Builder(
+            this,
+            getChannelIdForNotification(id)  // ✅ Use unique channel
+        ).build()
 
         val rv = RemoteViews(packageName, R.layout.notification_stopwatch_timer)
+
         rv.setTextViewText(R.id.tvTimer, formatTime(state.accumulated.toInt()))
-        rv.setTextViewText(R.id.tvTitle, timerStates[id]?.title)
-        rv.setViewBackgroundColor(
-            R.id.llMain,
-            safeBgColor()
-        )
+        rv.setTextViewText(R.id.tvTitle, state.title)
+
         rv.setImageViewResource(
             R.id.ivPlay,
             if (state.isRunning) R.drawable.ic_pause else R.drawable.ic_play
         )
-        rv.setViewVisibility(
-            R.id.ivRestart,
-            if (state.isRunning) View.GONE else View.VISIBLE
-        )
-        rv.setViewVisibility(
-            R.id.ivFlag,
-            if (state.isRunning) View.VISIBLE else View.GONE
-        )
-        rv.setViewVisibility(
-            R.id.tvPause,
-            if (state.isRunning) View.GONE else View.VISIBLE
-        )
-        rv.setOnClickPendingIntent(
-            R.id.ivRestart,
-            createActionIntent(id, ACTION_RESTART)
-        )
+
+        rv.setViewVisibility(R.id.ivRestart, if (state.isRunning) View.GONE else View.VISIBLE)
+        rv.setViewVisibility(R.id.ivFlag, if (state.isRunning) View.VISIBLE else View.GONE)
+        rv.setViewVisibility(R.id.tvPause, if (state.isRunning) View.GONE else View.VISIBLE)
+
+        rv.setOnClickPendingIntent(R.id.ivRestart, createActionIntent(id, ACTION_RESTART))
         rv.setOnClickPendingIntent(
             R.id.ivPlay,
             createActionIntent(id, if (state.isRunning) ACTION_PAUSE else ACTION_RESUME)
         )
+        rv.setOnClickPendingIntent(R.id.ivFlag, createActionIntent(id, ACTION_LAP))
+
         if (state.lapCount > 0) {
             rv.setViewVisibility(R.id.tvLap, View.VISIBLE)
             rv.setTextViewText(R.id.tvLap, "Lap: ${state.lapCount}")
+        } else {
+            rv.setViewVisibility(R.id.tvLap, View.GONE)
+            rv.setTextViewText(R.id.tvLap, "")
         }
-        rv.setOnClickPendingIntent(
-            R.id.ivFlag,
-            createActionIntent(id,  ACTION_LAP)
-        )
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        // ✅ Use unique channel ID for this notification
+        return NotificationCompat.Builder(this, getChannelIdForNotification(id))
             .setSmallIcon(R.drawable.ic_stopwatch)
-            .setCustomContentView(rv)
             .setCustomBigContentView(rv)
             .setOnlyAlertOnce(true)
             .setOngoing(true)
-            .setColor(safeBgColor())
-            .setColorized(true)
             .build()
     }
 
-    // ✅ CHANGED – mark notification actions
     private fun createActionIntent(id: Int, action: String): PendingIntent =
         PendingIntent.getService(
             this,
@@ -416,17 +443,8 @@ class LiveStopWatchService : Service() {
         }
     }
 
-    private fun createChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Live Timer",
-                NotificationManager.IMPORTANCE_LOW
-            )
-            getSystemService(NotificationManager::class.java)
-                ?.createNotificationChannel(channel)
-        }
-    }
+    // ✅ REMOVED: No longer needed as we create channels dynamically
+    // private fun createChannel() { ... }
 
     override fun onBind(intent: Intent?): IBinder? = null
 }
