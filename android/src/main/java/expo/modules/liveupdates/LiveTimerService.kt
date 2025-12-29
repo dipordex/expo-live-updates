@@ -162,19 +162,33 @@ class LiveTimerService : Service() {
             return
         }
 
+//        val runnable = object : Runnable {
+//            override fun run() {
+//                timerStates[notificationId]?.let {
+//                    if (it.isRunning && it.remaining >= 0) {
+//                        it.remaining--
+//                        updateNotification(notificationId)
+//                        handler.postDelayed(this, 1000)
+//                    }
+//                }
+//            }
+//        }
         val runnable = object : Runnable {
             override fun run() {
-                timerStates[notificationId]?.let {
-                    if (it.isRunning && it.remaining > 0) {
-                        it.remaining--
+                val state = timerStates[notificationId] ?: return
+                if (!state.isRunning) return
+                if (state.remaining > 0) {
+                    state.remaining--
+                    updateNotification(notificationId)
+                    handler.postDelayed(this, 1000)
+                    if (state.remaining == 0.0){
+                        state.isRunning = false
                         updateNotification(notificationId)
-                        handler.postDelayed(this, 1000)
-                    } else if (it.remaining <= 0) {
-                        Log.d(TAG, "Timer $notificationId finished")
-                        it.isRunning = false
-                        handler.removeCallbacks(this)
-                        stopTimer(notificationId, false)
                     }
+                } else {
+                    state.remaining = 0.0
+                    state.isRunning = false
+                    updateNotification(notificationId)
                 }
             }
         }
@@ -225,14 +239,16 @@ class LiveTimerService : Service() {
         timerStates[id]?.apply {
             isRunning = false
             handler.removeCallbacks(runnable)
-            timerStates.remove(id)
-            getSystemService(NotificationManager::class.java)?.cancel(id)
-            if (fromNotification) {
-                NotificationStateTriggredEventEmitter.emit(
-                    id,
-                    "stop",
-                    "timer"
-                )
+            if (remaining > 0.0 || fromNotification) {
+                timerStates.remove(id)
+                if (remaining != 0.0) getSystemService(NotificationManager::class.java)?.cancel(id)
+                if (fromNotification) {
+                    NotificationStateTriggredEventEmitter.emit(
+                        id,
+                        "stop",
+                        "timer"
+                    )
+                }
             }
         }
         if (timerStates.isEmpty()) stopSelf()
@@ -265,7 +281,11 @@ class LiveTimerService : Service() {
         )
         rv.setViewVisibility(
             R.id.tvPause,
-            if (state.isRunning) View.GONE else View.VISIBLE
+            if (state.isRunning || state.remaining != 0.0) View.GONE else View.VISIBLE
+        )
+        rv.setViewVisibility(
+            R.id.ivPlay1,
+            if (state.remaining == 0.0) View.GONE else View.VISIBLE
         )
         rv.setOnClickPendingIntent(
             R.id.ivStop,
