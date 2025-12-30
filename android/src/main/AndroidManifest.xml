@@ -4,12 +4,18 @@
 
     <uses-sdk android:minSdkVersion="24" />
 
+    <!-- ✅ Correct permissions -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <!-- ⚠️ ADD: Version check for FOREGROUND_SERVICE_SPECIAL_USE -->
+    <!-- This permission is only for Android 14+ (API 34+) -->
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"
+        android:minSdkVersion="34" />
 
     <application>
-        <!-- Foreground Service for Stopwatch/Timer -->
+        <!-- ✅ Stopwatch Service looks good -->
         <service
             android:name=".LiveStopWatchService"
             android:enabled="true"
@@ -20,6 +26,7 @@
                 android:value="stopwatch" />
         </service>
 
+        <!-- ✅ Timer Service looks good -->
         <service
             android:name=".LiveTimerService"
             android:enabled="true"
@@ -30,7 +37,7 @@
                 android:value="timer" />
         </service>
 
-        <!-- Notification dismissed receiver -->
+        <!-- ✅ Notification receiver looks good -->
         <receiver
             android:name=".NotificationDismissedReceiver"
             android:exported="false" />

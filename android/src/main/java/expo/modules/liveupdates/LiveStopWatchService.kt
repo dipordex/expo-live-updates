@@ -124,6 +124,7 @@ class LiveStopWatchService : Service() {
             ).apply {
                 description = "Stopwatch notification for $title"
                 setShowBadge(false)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
 
             val notificationManager = getSystemService(NotificationManager::class.java)
@@ -385,11 +386,30 @@ class LiveStopWatchService : Service() {
 
         rv.setTextViewText(R.id.tvTimer, formatTime(state.accumulated.toInt()))
         rv.setTextViewText(R.id.tvTitle, state.title)
+        val isDark = isDarkMode()
 
-        rv.setImageViewResource(
-            R.id.ivPlay,
+        val textColor = if (isDark) {
+            android.graphics.Color.WHITE
+        } else {
+            android.graphics.Color.BLACK
+        }
+
+        val stopWatchIcon = if (isDark) R.drawable.ic_stopwatch else R.drawable.ic_stopwatch_black
+        val playIcon = if (isDark){
             if (state.isRunning) R.drawable.ic_pause else R.drawable.ic_play
-        )
+        }else{
+            if (state.isRunning) R.drawable.ic_pause_black else R.drawable.ic_play_black
+        }
+        val flagIcon = if (isDark) R.drawable.ic_flag else R.drawable.ic_flag_black
+        val restartIcon = if (isDark) R.drawable.ic_rotate else R.drawable.ic_rotate_black
+
+        rv.setImageViewResource(R.id.ivPlay, playIcon)
+        rv.setImageViewResource(R.id.ivView, stopWatchIcon)
+        rv.setImageViewResource(R.id.ivFlag, flagIcon)
+        rv.setImageViewResource(R.id.ivRestart, restartIcon)
+        rv.setTextColor(R.id.tvTitle,textColor)
+        rv.setTextColor(R.id.tvLap,textColor)
+        rv.setTextColor(R.id.tvTimer,textColor)
 
         rv.setViewVisibility(R.id.ivRestart, if (state.isRunning) View.GONE else View.VISIBLE)
         rv.setViewVisibility(R.id.ivFlag, if (state.isRunning) View.VISIBLE else View.GONE)
@@ -414,9 +434,17 @@ class LiveStopWatchService : Service() {
         return NotificationCompat.Builder(this, getChannelIdForNotification(id))
             .setSmallIcon(R.drawable.ic_stopwatch)
             .setCustomBigContentView(rv)
+            .setCustomContentView(rv)
             .setOnlyAlertOnce(true)
             .setOngoing(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
+    }
+
+    private fun isDarkMode(): Boolean {
+        val nightModeFlags =
+            resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+        return nightModeFlags == android.content.res.Configuration.UI_MODE_NIGHT_YES
     }
 
     private fun createActionIntent(id: Int, action: String): PendingIntent =

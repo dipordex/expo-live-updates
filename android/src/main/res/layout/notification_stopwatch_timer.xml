@@ -18,8 +18,7 @@
             android:layout_width="16dp"
             android:layout_height="16dp"
             android:alpha="0.7"
-            android:src="@drawable/ic_stopwatch"
-            android:tint="@color/white" />
+            android:src="@drawable/ic_stopwatch" />
 
         <TextView
             android:id="@+id/tvTitle"
@@ -27,7 +26,6 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:text="@string/stopwatch_1"
-            android:textColor="@color/white"
             android:textSize="14sp"
             android:alpha="0.7" />
 
@@ -58,7 +56,6 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="00:00"
-            android:textColor="@color/white"
             android:textSize="16sp"
             android:textStyle="bold"/>
 
@@ -67,7 +64,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/lap_0"
-            android:textColor="@color/white"
             android:textSize="14sp"
             android:visibility="gone"
             android:layout_marginEnd="12dp"/>
@@ -78,8 +74,7 @@
             android:layout_height="30dp"
             android:background="@drawable/bg_circle_button"
             android:padding="8dp"
-            android:src="@drawable/ic_pause"
-            android:tint="@color/white"/>
+            android:src="@drawable/ic_pause"/>
 
         <ImageView
             android:id="@+id/ivFlag"
@@ -88,8 +83,7 @@
             android:layout_marginStart="12dp"
             android:background="@drawable/bg_circle_button"
             android:padding="8dp"
-            android:src="@drawable/ic_flag"
-            android:tint="@color/white"/>
+            android:src="@drawable/ic_flag"/>
 
         <ImageView
             android:id="@+id/ivRestart"
@@ -99,7 +93,6 @@
             android:background="@drawable/bg_circle_button"
             android:padding="8dp"
             android:src="@drawable/ic_rotate"
-            android:tint="@color/white"
             android:visibility="gone"/>
     </LinearLayout>
 

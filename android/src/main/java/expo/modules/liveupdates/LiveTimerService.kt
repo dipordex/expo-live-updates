@@ -14,8 +14,6 @@ import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
-import androidx.core.graphics.toColorInt
-import androidx.core.widget.RemoteViewsCompat.setViewBackgroundColor
 
 class LiveTimerService : Service() {
 
@@ -38,7 +36,7 @@ class LiveTimerService : Service() {
         const val EXTRA_FROM_NOTIFICATION = "from_notification"
     }
 
-    private data class TimerState(
+    data class TimerState(
         var id: String,
         var duration: Double,
         var isRunning: Boolean,
@@ -49,8 +47,8 @@ class LiveTimerService : Service() {
     )
 
     private val handler = Handler(Looper.getMainLooper())
-    private val timerStates = mutableMapOf<Int, TimerState>()
-//    private var bgColor: String? = "#1B4332"
+    private val timerStates:MutableMap<Int, TimerState> = mutableMapOf<Int, TimerState>()
+    private var currentForegroundId: Int? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -76,6 +74,7 @@ class LiveTimerService : Service() {
         Log.d(TAG, "========================================")
         Log.d(TAG, "onStartCommand CALLED")
         Log.d(TAG, "Action: ${intent?.action}")
+        Log.d(TAG, "Active timers: ${timerStates.size}")
         Log.d(TAG, "========================================")
 
         val notificationId = intent?.getIntExtra(EXTRA_NOTIFICATION_ID, -1) ?: -1
@@ -83,7 +82,7 @@ class LiveTimerService : Service() {
 
         if (notificationId == -1) {
             Log.e(TAG, "Invalid notification ID!")
-            return START_NOT_STICKY
+            return START_STICKY
         }
 
         val fromNotification = intent?.getBooleanExtra(EXTRA_FROM_NOTIFICATION, false) == true
@@ -97,11 +96,6 @@ class LiveTimerService : Service() {
         }
 
         Log.d(TAG, "Config: $config")
-
-//        if (config?.backgroundColor != null) {
-//            bgColor = config.backgroundColor
-//            Log.d(TAG, "Background color set to: $bgColor")
-//        }
 
         when (intent?.action) {
             ACTION_START -> {
@@ -125,17 +119,10 @@ class LiveTimerService : Service() {
             }
         }
 
+        // Changed from START_NOT_STICKY to START_STICKY
+        // This ensures the service persists even when paused
         return START_NOT_STICKY
     }
-
-
-//    private fun safeBgColor(): Int {
-//        return try {
-//            (bgColor ?: "#1B4332").toColorInt()
-//        } catch (e: Exception) {
-//            "#1B4332".toColorInt()
-//        }
-//    }
 
     private fun startTimer(intent: Intent, notificationId: Int) {
         Log.d(TAG, "startTimer called for ID: $notificationId")
@@ -162,26 +149,17 @@ class LiveTimerService : Service() {
             return
         }
 
-//        val runnable = object : Runnable {
-//            override fun run() {
-//                timerStates[notificationId]?.let {
-//                    if (it.isRunning && it.remaining >= 0) {
-//                        it.remaining--
-//                        updateNotification(notificationId)
-//                        handler.postDelayed(this, 1000)
-//                    }
-//                }
-//            }
-//        }
         val runnable = object : Runnable {
             override fun run() {
                 val state = timerStates[notificationId] ?: return
                 if (!state.isRunning) return
+
                 if (state.remaining > 0) {
                     state.remaining--
                     updateNotification(notificationId)
                     handler.postDelayed(this, 1000)
-                    if (state.remaining == 0.0){
+
+                    if (state.remaining == 0.0) {
                         state.isRunning = false
                         updateNotification(notificationId)
                     }
@@ -203,10 +181,11 @@ class LiveTimerService : Service() {
             runnable = runnable
         )
 
-        Log.d(TAG, "Starting foreground with notification")
+        Log.d(TAG, "Starting foreground with notification ${timerStates}")
         try {
             startForeground(notificationId, buildNotification(notificationId))
-            Log.d(TAG, "✅ Foreground started successfully")
+            currentForegroundId = notificationId
+            Log.d(TAG, "✅ Foreground started successfully with ID: $notificationId")
         } catch (e: Exception) {
             Log.e(TAG, "❌ Failed to start foreground", e)
             e.printStackTrace()
@@ -221,72 +200,153 @@ class LiveTimerService : Service() {
     }
 
     private fun pauseTimer(id: Int, fromNotification: Boolean) {
-        timerStates[id]?.apply {
-            isRunning = false
-            handler.removeCallbacks(runnable)
-            updateNotification(id)
-            if (fromNotification) {
-                NotificationStateTriggredEventEmitter.emit(
-                    id,
-                    "pause",
-                    "timer"
-                )
-            }
+        Log.d(TAG, "pauseTimer called for ID: $id, fromNotification: $fromNotification")
+
+        val state = timerStates[id]
+        if (state == null) {
+            Log.e(TAG, "Timer state not found for ID: ${timerStates[id]}")
+            Log.e(TAG, "Available timer IDs: ${timerStates.keys}")
+            return
+        }
+
+        Log.d(TAG, "Timer state before pause - isRunning: ${state.isRunning}, remaining: ${state.remaining}")
+
+        state.isRunning = false
+        handler.removeCallbacks(state.runnable)
+
+        // CRITICAL: Update notification while maintaining foreground state
+        updateNotification(id)
+
+        Log.d(TAG, "Notification updated after pause")
+        Log.d(TAG, "Timer states count after pause: ${timerStates.size}")
+
+        if (fromNotification) {
+            NotificationStateTriggredEventEmitter.emit(id, "pause", "timer")
         }
     }
 
     private fun stopTimer(id: Int, fromNotification: Boolean) {
-        timerStates[id]?.apply {
-            isRunning = false
-            handler.removeCallbacks(runnable)
-            if (remaining > 0.0 || fromNotification) {
-                timerStates.remove(id)
-                if (remaining != 0.0) getSystemService(NotificationManager::class.java)?.cancel(id)
-                if (fromNotification) {
-                    NotificationStateTriggredEventEmitter.emit(
-                        id,
-                        "stop",
-                        "timer"
-                    )
-                }
+        Log.d(TAG, "stopTimer called for ID: $id, fromNotification: $fromNotification")
+
+        val state = timerStates[id]
+        if (state == null) {
+            Log.e(TAG, "Timer state not found for ID: $id")
+            return
+        }
+
+        state.isRunning = false
+        handler.removeCallbacks(state.runnable)
+
+        if (state.remaining > 0.0 || fromNotification) {
+            timerStates.remove(id)
+            Log.d(TAG, "Timer state removed for ID: $id")
+
+            if (state.remaining != 0.0) {
+                // Cancel the notification
+                getSystemService(NotificationManager::class.java)?.cancel(id)
+                Log.d(TAG, "Notification cancelled for ID: $id")
+            }
+
+            if (fromNotification) {
+                NotificationStateTriggredEventEmitter.emit(id, "stop", "timer")
             }
         }
-        if (timerStates.isEmpty()) stopSelf()
+
+        // If this was the foreground notification, update or stop foreground
+        if (currentForegroundId == id) {
+            if (timerStates.isNotEmpty()) {
+                // Promote another timer to foreground
+                val nextId = timerStates.keys.first()
+                currentForegroundId = nextId
+                startForeground(nextId, buildNotification(nextId))
+                Log.d(TAG, "Promoted timer $nextId to foreground")
+            } else {
+                // No more timers, stop foreground
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } else {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
+                }
+                currentForegroundId = null
+                Log.d(TAG, "Stopped foreground service")
+            }
+        }
+
+        if (timerStates.isEmpty()) {
+            Log.d(TAG, "No more timers, stopping service")
+            stopSelf()
+        }
     }
 
     private fun updateNotification(id: Int) {
-        getSystemService(NotificationManager::class.java)
-            ?.notify(id, buildNotification(id))
+        Log.d(TAG, "updateNotification called for ID: $id")
+
+        val notification = buildNotification(id)
+
+        // If this is the foreground notification, update foreground state
+        if (currentForegroundId == id) {
+            try {
+                startForeground(id, notification)
+                Log.d(TAG, "✅ Foreground notification updated for ID: $id")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Failed to update foreground notification", e)
+            }
+        } else {
+            // Regular notification update
+            getSystemService(NotificationManager::class.java)?.notify(id, notification)
+            Log.d(TAG, "Regular notification updated for ID: $id")
+        }
     }
 
     private fun buildNotification(id: Int): Notification {
-        val state = timerStates[id] ?: return NotificationCompat.Builder(this,
-            CHANNEL_ID
-        ).build()
+        val state = timerStates[id]
+
+        if (state == null) {
+            Log.e(TAG, "buildNotification: Timer state not found for ID: $id")
+            return NotificationCompat.Builder(this, CHANNEL_ID).build()
+        }
 
         val rv = RemoteViews(packageName, R.layout.notification_timer)
         rv.setTextViewText(R.id.tvTimer, formatTime(state.remaining.toInt()))
-        rv.setTextViewText(R.id.tvTitle, timerStates[id]?.title)
-//        rv.setViewBackgroundColor(
-//            R.id.llMain,
-//            safeBgColor()
-//        )
-        rv.setImageViewResource(
-            R.id.ivPlay1,
+        rv.setTextViewText(R.id.tvTitle, state.title)
+        val isDark = isDarkMode()
+
+        val textColor = if (isDark) {
+            android.graphics.Color.WHITE
+        } else {
+            android.graphics.Color.BLACK
+        }
+
+        val timerIcon = if (isDark) R.drawable.ic_timer else R.drawable.ic_timer_black
+        val playIcon = if (isDark){
             if (state.isRunning) R.drawable.ic_pause else R.drawable.ic_play
-        )
+        }else{
+            if (state.isRunning) R.drawable.ic_pause_black else R.drawable.ic_play_black
+        }
+        val stopIcon = if (isDark) R.drawable.ic_stop else R.drawable.ic_stop_black
+
+        rv.setImageViewResource( R.id.ivView,timerIcon )
+        rv.setImageViewResource(  R.id.ivPlay1,playIcon)
+        rv.setImageViewResource(  R.id.ivStop,stopIcon)
+        rv.setTextColor(R.id.tvTitle,textColor)
+        rv.setTextColor(R.id.tvTimer,textColor)
+
         rv.setOnClickPendingIntent(
             R.id.ivPlay1,
             createActionIntent(id, if (state.isRunning) ACTION_PAUSE else ACTION_RESUME)
         )
+
         rv.setViewVisibility(
             R.id.tvPause,
-            if (state.isRunning || state.remaining != 0.0) View.GONE else View.VISIBLE
+            if (state.isRunning && state.remaining != 0.0) View.GONE else View.VISIBLE
         )
+
         rv.setViewVisibility(
             R.id.ivPlay1,
             if (state.remaining == 0.0) View.GONE else View.VISIBLE
         )
+
         rv.setOnClickPendingIntent(
             R.id.ivStop,
             createActionIntent(id, ACTION_STOP)
@@ -295,10 +355,18 @@ class LiveTimerService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_timer)
             .setCustomBigContentView(rv)
+            .setCustomContentView(rv)
             .setOnlyAlertOnce(true)
             .setOngoing(true)
             .build()
     }
+
+    private fun isDarkMode(): Boolean {
+        val nightModeFlags =
+            resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+        return nightModeFlags == android.content.res.Configuration.UI_MODE_NIGHT_YES
+    }
+
 
     private fun createActionIntent(id: Int, action: String): PendingIntent =
         PendingIntent.getService(
@@ -321,20 +389,39 @@ class LiveTimerService : Service() {
     }
 
     private fun resumeTimer(id: Int, fromNotification: Boolean) {
-        timerStates[id]?.apply {
-            if (!isRunning) {
-                isRunning = true
-                handler.postDelayed(runnable, 1000)
-                updateNotification(id)
-                if (fromNotification){
-                    NotificationStateTriggredEventEmitter.emit(
-                        id,
-                        "resume",
-                        "timer"
-                    )
-                }
-            }
+        Log.d(TAG, "resumeTimer called for ID: $id, fromNotification: $fromNotification")
+
+        val state = timerStates[id]
+        if (state == null) {
+            Log.e(TAG, "Timer state not found for ID: $id")
+            return
         }
+
+        if (!state.isRunning) {
+            state.isRunning = true
+            handler.postDelayed(state.runnable, 1000)
+            updateNotification(id)
+            Log.d(TAG, "Timer resumed for ID: $id")
+
+            if (fromNotification) {
+                NotificationStateTriggredEventEmitter.emit(id, "resume", "timer")
+            }
+        } else {
+            Log.d(TAG, "Timer already running for ID: $id")
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d(TAG, "========================================")
+        Log.d(TAG, "LiveTimerService onDestroy() CALLED")
+        Log.d(TAG, "========================================")
+
+        // Clean up all handlers
+        timerStates.values.forEach { state ->
+            handler.removeCallbacks(state.runnable)
+        }
+        timerStates.clear()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
