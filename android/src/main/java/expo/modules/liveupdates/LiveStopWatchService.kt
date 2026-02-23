@@ -44,6 +44,7 @@ class LiveStopWatchService : Service() {
         const val EXTRA_IS_RUNNING = "isRunning"
         const val EXTRA_ACCUMULATED = "accumulated"
         const val EXTRA_LAP_COUNT = "EXTRA_LAP_COUNT"
+        const val EXTRA_SUBTITLE = "subtitle"
         const val EXTRA_FROM_NOTIFICATION = "from_notification"
     }
 
@@ -54,6 +55,7 @@ class LiveStopWatchService : Service() {
         var lapCount: Int,
         var startedAt: Long?,
         var title: String,
+        var subtitle: String?,
         var mode: String,
         val runnable: Runnable
     )
@@ -243,6 +245,7 @@ class LiveStopWatchService : Service() {
         }
 
         val title = intent.getStringExtra(EXTRA_TITLE) ?: "Timer"
+        val subtitle = intent.getStringExtra(EXTRA_SUBTITLE)
 
         val accumulated = intent.getLongExtra(EXTRA_ACCUMULATED, 0L)
         Log.d("LVS", accumulated.toString())
@@ -268,6 +271,7 @@ class LiveStopWatchService : Service() {
             lapCount = 0,
             startedAt = System.currentTimeMillis(),
             title = title,
+            subtitle = subtitle,
             mode = "stopwatch",
             runnable = runnable
         )
@@ -414,6 +418,14 @@ class LiveStopWatchService : Service() {
         rv.setViewVisibility(R.id.ivRestart, if (state.isRunning) View.GONE else View.VISIBLE)
         rv.setViewVisibility(R.id.ivFlag, if (state.isRunning) View.VISIBLE else View.GONE)
         rv.setViewVisibility(R.id.tvPause, if (state.isRunning) View.GONE else View.VISIBLE)
+
+        if (!state.subtitle.isNullOrBlank()) {
+            rv.setViewVisibility(R.id.tvSubtitle, View.VISIBLE)
+            rv.setTextViewText(R.id.tvSubtitle, state.subtitle)
+            rv.setTextColor(R.id.tvSubtitle, textColor)
+        } else {
+            rv.setViewVisibility(R.id.tvSubtitle, View.GONE)
+        }
 
         rv.setOnClickPendingIntent(R.id.ivRestart, createActionIntent(id, ACTION_RESTART))
         rv.setOnClickPendingIntent(

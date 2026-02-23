@@ -49,15 +49,21 @@ class ExpoLiveUpdatesModule : Module() {
             }
             Log.d(MODULE_TAG, "Permission check passed ✓")
             Log.d(MODULE_TAG, "config:${config}")
-            modeClass = if (state.mode == "stopwatch") LiveStopWatchService::class.java else LiveTimerService::class.java
+            modeClass = when (state.mode) {
+                "stopwatch" -> LiveStopWatchService::class.java
+                "timer" -> LiveTimerService::class.java
+                "task" -> LiveTaskService::class.java
+                else -> throw CodedException("Invalid mode: ${state.mode}")
+            }
             when (state.mode) {
-                "stopwatch", "timer" -> {
+                "stopwatch", "timer", "task" -> {
                     Log.d(MODULE_TAG, "Mode is ${state.mode} - starting service")
 
                     try {
                         val modeId = when (state.mode) {
                             "stopwatch" -> state.stopwatch?.id
                             "timer" -> state.timer?.id
+                            "task" -> state.task?.id
                             else -> null
                         }
 
@@ -128,6 +134,9 @@ class ExpoLiveUpdatesModule : Module() {
                         // Update with full state including accumulated
                         updateTimerState(context, notificationId, stopwatch)
                     }
+                }
+                "task" -> {
+                    Log.d(MODULE_TAG, "Task update handled separately or simply ignored")
                 }
                 else -> {
                     state.timer?.let { timer ->
@@ -219,7 +228,12 @@ class ExpoLiveUpdatesModule : Module() {
         Log.d(MODULE_TAG, "Context package: ${context.packageName}")
 
         val intent = Intent(context,modeClass ).apply {
-            action = if (state.mode=="stopwatch") LiveStopWatchService.ACTION_START else LiveTimerService.ACTION_START
+            action = when (state.mode) {
+                "stopwatch" -> LiveStopWatchService.ACTION_START
+                "timer" -> LiveTimerService.ACTION_START
+                "task" -> LiveTaskService.ACTION_START
+                else -> ""
+            }
 
             Log.d(MODULE_TAG, "title: ${state.title}, mode: ${state.mode}")
 
@@ -241,6 +255,7 @@ class ExpoLiveUpdatesModule : Module() {
                 putExtra(LiveStopWatchService.EXTRA_LAP_COUNT, stopwatch.lapCount)
                 putExtra(LiveStopWatchService.EXTRA_CONFIG,config)
                 putExtra(LiveStopWatchService.EXTRA_TITLE, state.title)
+                putExtra(LiveStopWatchService.EXTRA_SUBTITLE, state.subtitle)
                 putExtra(LiveStopWatchService.EXTRA_NOTIFICATION_ID, notificationId)
 
                 Log.d(MODULE_TAG, "✅ Stopwatch extras added")
@@ -256,8 +271,20 @@ class ExpoLiveUpdatesModule : Module() {
                 putExtra(LiveTimerService.EXTRA_REMAINING, timer.remaining ?: 0)
                 putExtra(LiveTimerService.EXTRA_CONFIG,config)
                 putExtra(LiveTimerService.EXTRA_TITLE, state.title)
+                putExtra(LiveTimerService.EXTRA_SUBTITLE, state.subtitle)
 
                 Log.d(MODULE_TAG, "✅ Timer extras added")
+            }
+
+            state.task?.let { task ->
+                Log.d(MODULE_TAG, "Task data: ${task}")
+                putExtra(LiveTaskService.EXTRA_START_DATE, task.startDate ?: System.currentTimeMillis())
+                putExtra(LiveTaskService.EXTRA_TITLE, state.title)
+                putExtra(LiveTaskService.EXTRA_SUBTITLE, state.subtitle)
+                putExtra(LiveTaskService.EXTRA_NOTIFICATION_ID, notificationId)
+                putExtra(LiveTaskService.EXTRA_CONFIG, config)
+
+                Log.d(MODULE_TAG, "✅ Task extras added")
             }
         }
 
@@ -402,7 +429,7 @@ class ExpoLiveUpdatesModule : Module() {
         val notificationId =
             intent.getIntExtra(LiveStopWatchService.EXTRA_NOTIFICATION_ID, -1).takeIf { it != -1 }
 
-        val mode = "stopwatch"
+        val mode = intent.getStringExtra("mode") ?: "stopwatch"
 
         return Triple(action, notificationId, mode)
     }

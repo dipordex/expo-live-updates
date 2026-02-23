@@ -18,4 +18,9 @@ interface ApiServices {
     suspend fun postLapCreation(
         @Body lapObject: LapObject
     ):  Response<Any>
+
+    @POST("{id}/stop/")
+    suspend fun postTaskStop(
+        @Path("id") id: Int
+    ): Response<Any>
 }

@@ -37,6 +37,17 @@
                 android:value="timer" />
         </service>
 
+        <!-- ✅ Task Service -->
+        <service
+            android:name=".LiveTaskService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="task" />
+        </service>
+
         <!-- ✅ Notification receiver looks good -->
         <receiver
             android:name=".NotificationDismissedReceiver"

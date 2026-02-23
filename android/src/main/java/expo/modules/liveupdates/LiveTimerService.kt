@@ -32,6 +32,7 @@ class LiveTimerService : Service() {
         const val EXTRA_IS_RUNNING = "isRunning"
         const val EXTRA_DURATION = "EXTRA_DURATION"
         const val EXTRA_REMAINING = "EXTRA_REMAINING"
+        const val EXTRA_SUBTITLE = "subtitle"
 
         const val EXTRA_FROM_NOTIFICATION = "from_notification"
     }
@@ -42,6 +43,7 @@ class LiveTimerService : Service() {
         var isRunning: Boolean,
         var remaining: Double,
         var title: String,
+        var subtitle: String?,
         var mode: String,
         val runnable: Runnable
     )
@@ -134,6 +136,7 @@ class LiveTimerService : Service() {
         }
 
         val title = intent.getStringExtra(EXTRA_TITLE) ?: "Timer"
+        val subtitle = intent.getStringExtra(EXTRA_SUBTITLE)
         val duration = intent.getDoubleExtra(EXTRA_DURATION, 0.00)
         val remaining = intent.getDoubleExtra(EXTRA_REMAINING, duration)
         val isRunning = intent.getBooleanExtra(EXTRA_IS_RUNNING, false)
@@ -177,6 +180,7 @@ class LiveTimerService : Service() {
             isRunning = isRunning,
             remaining = remaining,
             title = title,
+            subtitle = subtitle,
             mode = "timer",
             runnable = runnable
         )
@@ -331,6 +335,14 @@ class LiveTimerService : Service() {
         rv.setImageViewResource(  R.id.ivStop,stopIcon)
         rv.setTextColor(R.id.tvTitle,textColor)
         rv.setTextColor(R.id.tvTimer,textColor)
+
+        if (!state.subtitle.isNullOrBlank()) {
+            rv.setViewVisibility(R.id.tvSubtitle, View.VISIBLE)
+            rv.setTextViewText(R.id.tvSubtitle, state.subtitle)
+            rv.setTextColor(R.id.tvSubtitle, textColor)
+        } else {
+            rv.setViewVisibility(R.id.tvSubtitle, View.GONE)
+        }
 
         rv.setOnClickPendingIntent(
             R.id.ivPlay1,

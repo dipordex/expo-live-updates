@@ -33,6 +33,7 @@ data class LiveUpdateState(
     @Field var mode: String?,
     @Field var stopwatch: Stopwatch?,
     @Field var timer: Timer?,
+    @Field var task: TaskData?,
     @Field var showInDynamicIsland: Boolean?,
 ) : Record
 
@@ -53,6 +54,11 @@ data class Timer(
     @Field var startTime: Long?,
 ) : Record
 
+data class TaskData(
+    @Field var id: String,
+    @Field var startDate: Long?
+) : Record
+
 @Parcelize
 data class LiveUpdateConfig(
     @Field val deepLinkUrl: String? = null,
@@ -64,7 +70,8 @@ data class LiveUpdateConfig(
 
 @Parcelize
 data class ApiEndpoint(
-    @Field var stopwatchEndpoints: StopwatchEndpoints?
+    @Field var stopwatchEndpoints: StopwatchEndpoints?,
+    @Field var taskEndpoints: String?
 ) : Record, Parcelable
 
 @Parcelize
