@@ -95,7 +95,7 @@ class LiveTaskService : Service() {
             val channel = NotificationChannel(
                 channelId,
                 channelName,
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Task notification for $title"
                 setShowBadge(false)

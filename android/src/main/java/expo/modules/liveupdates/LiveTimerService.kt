@@ -65,7 +65,7 @@ class LiveTimerService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Live Timer",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_DEFAULT
             )
             getSystemService(NotificationManager::class.java)
                 ?.createNotificationChannel(channel)

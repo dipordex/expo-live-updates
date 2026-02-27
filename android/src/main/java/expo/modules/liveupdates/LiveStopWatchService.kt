@@ -122,7 +122,7 @@ class LiveStopWatchService : Service() {
             val channel = NotificationChannel(
                 channelId,
                 channelName,
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Stopwatch notification for $title"
                 setShowBadge(false)
