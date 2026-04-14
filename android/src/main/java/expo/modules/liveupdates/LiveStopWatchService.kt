@@ -472,6 +472,13 @@ class LiveStopWatchService : Service() {
             rv.setTextViewText(R.id.tvLap, "")
         }
 
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val contentIntent = launchIntent?.let {
+            PendingIntent.getActivity(this, id, it, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        }
+
         // ✅ Use unique channel ID for this notification
         return NotificationCompat.Builder(this, getChannelIdForNotification(id))
             .setSmallIcon(R.drawable.ic_stopwatch)
@@ -481,6 +488,7 @@ class LiveStopWatchService : Service() {
             .setOngoing(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setDeleteIntent(createActionIntent(id, ACTION_DISMISS))
+            .setContentIntent(contentIntent)
             .build()
     }
 

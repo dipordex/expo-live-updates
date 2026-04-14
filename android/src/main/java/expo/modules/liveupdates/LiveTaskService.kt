@@ -244,6 +244,13 @@ class LiveTaskService : Service() {
         // Only one action for task: Stop
         rv.setOnClickPendingIntent(R.id.ivPlay, createActionIntent(id, ACTION_STOP))
 
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val contentIntent = launchIntent?.let {
+            PendingIntent.getActivity(this, id, it, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        }
+
         return NotificationCompat.Builder(this, getChannelIdForNotification(id))
             .setSmallIcon(taskIcon)
             .setCustomBigContentView(rv)
@@ -252,6 +259,7 @@ class LiveTaskService : Service() {
             .setOngoing(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setDeleteIntent(createActionIntent(id, ACTION_DISMISS))
+            .setContentIntent(contentIntent)
             .build()
     }
 

@@ -385,6 +385,13 @@ class LiveTimerService : Service() {
             createActionIntent(id, ACTION_STOP)
         )
 
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val contentIntent = launchIntent?.let {
+            PendingIntent.getActivity(this, id, it, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        }
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_timer)
             .setCustomBigContentView(rv)
@@ -392,6 +399,7 @@ class LiveTimerService : Service() {
             .setOnlyAlertOnce(true)
             .setOngoing(true)
             .setDeleteIntent(createActionIntent(id, ACTION_DISMISS))
+            .setContentIntent(contentIntent)
             .build()
     }
 
