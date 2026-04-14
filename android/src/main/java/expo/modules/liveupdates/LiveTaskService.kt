@@ -31,6 +31,7 @@ class LiveTaskService : Service() {
 
         const val ACTION_START = "ACTION_START"
         const val ACTION_STOP = "ACTION_STOP"
+        const val ACTION_DISMISS = "ACTION_DISMISS"
 
         const val EXTRA_NOTIFICATION_ID = "notificationId"
         const val EXTRA_CONFIG = "EXTRA_CONFIG"
@@ -46,7 +47,8 @@ class LiveTaskService : Service() {
         var startDate: Long,
         var title: String,
         var subtitle: String?,
-        val runnable: Runnable
+        val runnable: Runnable,
+        var isDismissed: Boolean = false
     )
 
     private val handler = Handler(Looper.getMainLooper())
@@ -78,6 +80,7 @@ class LiveTaskService : Service() {
         when (intent?.action) {
             ACTION_START -> startTask(intent, notificationId)
             ACTION_STOP -> stopTask(notificationId, fromNotification)
+            ACTION_DISMISS -> dismissTask(notificationId)
         }
 
         return START_NOT_STICKY
@@ -144,7 +147,8 @@ class LiveTaskService : Service() {
             startDate = startDate,
             title = title,
             subtitle = subtitle,
-            runnable = runnable
+            runnable = runnable,
+            isDismissed = false
         )
 
         startForeground(notificationId, buildNotification(notificationId))
@@ -180,7 +184,16 @@ class LiveTaskService : Service() {
         if (taskStates.isEmpty()) stopSelf()
     }
 
+    private fun dismissTask(id: Int) {
+        taskStates[id]?.apply {
+            isDismissed = true
+        }
+    }
+
     private fun updateNotification(id: Int) {
+        val state = taskStates[id] ?: return
+        if (state.isDismissed) return
+
         getSystemService(NotificationManager::class.java)
             ?.notify(id, buildNotification(id))
     }
@@ -238,6 +251,7 @@ class LiveTaskService : Service() {
             .setOnlyAlertOnce(true)
             .setOngoing(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setDeleteIntent(createActionIntent(id, ACTION_DISMISS))
             .build()
     }
 

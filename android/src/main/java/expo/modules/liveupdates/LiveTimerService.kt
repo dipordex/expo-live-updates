@@ -25,6 +25,7 @@ class LiveTimerService : Service() {
         const val ACTION_PAUSE = "ACTION_PAUSE"
         const val ACTION_STOP = "ACTION_STOP"
         const val ACTION_RESUME = "ACTION_RESUME"
+        const val ACTION_DISMISS = "ACTION_DISMISS"
 
         const val EXTRA_NOTIFICATION_ID = "notificationId"
         const val EXTRA_CONFIG = "EXTRA_CONFIG"
@@ -45,7 +46,8 @@ class LiveTimerService : Service() {
         var title: String,
         var subtitle: String?,
         var mode: String,
-        val runnable: Runnable
+        val runnable: Runnable,
+        var isDismissed: Boolean = false
     )
 
     private val handler = Handler(Looper.getMainLooper())
@@ -116,6 +118,10 @@ class LiveTimerService : Service() {
                 Log.d(TAG, "Handling ACTION_RESUME")
                 resumeTimer(notificationId, fromNotification)
             }
+            ACTION_DISMISS -> {
+                Log.d(TAG, "Handling ACTION_DISMISS")
+                dismissTimer(notificationId)
+            }
             else -> {
                 Log.e(TAG, "Unknown action: ${intent?.action}")
             }
@@ -182,7 +188,8 @@ class LiveTimerService : Service() {
             title = title,
             subtitle = subtitle,
             mode = "timer",
-            runnable = runnable
+            runnable = runnable,
+            isDismissed = false
         )
 
         Log.d(TAG, "Starting foreground with notification ${timerStates}")
@@ -216,6 +223,7 @@ class LiveTimerService : Service() {
         Log.d(TAG, "Timer state before pause - isRunning: ${state.isRunning}, remaining: ${state.remaining}")
 
         state.isRunning = false
+        state.isDismissed = false
         handler.removeCallbacks(state.runnable)
 
         // CRITICAL: Update notification while maintaining foreground state
@@ -283,8 +291,21 @@ class LiveTimerService : Service() {
         }
     }
 
+    private fun dismissTimer(id: Int) {
+        timerStates[id]?.apply {
+            isDismissed = true
+        }
+        Log.d(TAG, "Timer $id dismissed")
+    }
+
     private fun updateNotification(id: Int) {
         Log.d(TAG, "updateNotification called for ID: $id")
+
+        val state = timerStates[id] ?: return
+        if (state.isDismissed) {
+            Log.d(TAG, "Timer $id is dismissed, not updating notification")
+            return
+        }
 
         val notification = buildNotification(id)
 
@@ -370,6 +391,7 @@ class LiveTimerService : Service() {
             .setCustomContentView(rv)
             .setOnlyAlertOnce(true)
             .setOngoing(true)
+            .setDeleteIntent(createActionIntent(id, ACTION_DISMISS))
             .build()
     }
 
@@ -408,6 +430,8 @@ class LiveTimerService : Service() {
             Log.e(TAG, "Timer state not found for ID: $id")
             return
         }
+
+        state.isDismissed = false
 
         if (!state.isRunning) {
             state.isRunning = true

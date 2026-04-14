@@ -37,6 +37,7 @@ class LiveStopWatchService : Service() {
         const val ACTION_STOP = "ACTION_STOP"
         const val ACTION_LAP = "ACTION_LAP"
         const val ACTION_RESTART = "ACTION_RESTART"
+        const val ACTION_DISMISS = "ACTION_DISMISS"
 
         const val EXTRA_NOTIFICATION_ID = "notificationId"
         const val EXTRA_CONFIG = "EXTRA_CONFIG"
@@ -57,7 +58,8 @@ class LiveStopWatchService : Service() {
         var title: String,
         var subtitle: String?,
         var mode: String,
-        val runnable: Runnable
+        val runnable: Runnable,
+        var isDismissed: Boolean = false
     )
 
     private val handler = Handler(Looper.getMainLooper())
@@ -103,6 +105,7 @@ class LiveStopWatchService : Service() {
             ACTION_STOP -> stopTimer(notificationId, fromNotification)
             ACTION_LAP -> addLap(notificationId, fromNotification)
             ACTION_RESTART -> restartTimer(notificationId, fromNotification)
+            ACTION_DISMISS -> dismissTimer(notificationId)
         }
 
         return START_NOT_STICKY
@@ -276,7 +279,8 @@ class LiveStopWatchService : Service() {
             title = title,
             subtitle = subtitle,
             mode = "stopwatch",
-            runnable = runnable
+            runnable = runnable,
+            isDismissed = false
         )
 
         startForeground(notificationId, buildNotification(notificationId))
@@ -286,6 +290,7 @@ class LiveStopWatchService : Service() {
     private fun pauseTimer(id: Int, fromNotification: Boolean) {
         timerStates[id]?.apply {
             isRunning = false
+            isDismissed = false
             handler.removeCallbacks(runnable)
             updateNotification(id)
             if (fromNotification) {
@@ -301,6 +306,7 @@ class LiveStopWatchService : Service() {
 
     private fun resumeTimer(id: Int, fromNotification: Boolean) {
         timerStates[id]?.apply {
+            isDismissed = false
             if (!isRunning) {
                 isRunning = true
                 handler.postDelayed(runnable, 1000)
@@ -352,6 +358,7 @@ class LiveStopWatchService : Service() {
     private fun addLap(id: Int, fromNotification: Boolean) {
         timerStates[id]?.apply {
             lapCount++
+            isDismissed = false
             updateNotification(id)
             if (fromNotification){
                 postLapCreation("Lap $lapCount",timerStates[id]?.accumulated!!.toInt(),id)
@@ -369,6 +376,7 @@ class LiveStopWatchService : Service() {
             accumulated = 0L
             lapCount = 0
             isRunning = false
+            isDismissed = false
             if (startedAt == null) {
                 startedAt = System.currentTimeMillis()
             }
@@ -386,9 +394,18 @@ class LiveStopWatchService : Service() {
         }
     }
 
+    private fun dismissTimer(id: Int) {
+        timerStates[id]?.apply {
+            isDismissed = true
+        }
+    }
+
     // ---------------- UI ----------------
 
     private fun updateNotification(id: Int) {
+        val state = timerStates[id] ?: return
+        if (state.isDismissed) return
+
         getSystemService(NotificationManager::class.java)
             ?.notify(id, buildNotification(id))
     }
@@ -463,6 +480,7 @@ class LiveStopWatchService : Service() {
             .setOnlyAlertOnce(true)
             .setOngoing(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setDeleteIntent(createActionIntent(id, ACTION_DISMISS))
             .build()
     }
 
