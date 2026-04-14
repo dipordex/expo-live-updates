@@ -141,9 +141,12 @@ class LiveStopWatchService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channelId = getChannelIdForNotification(notificationId)
             val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager?.deleteNotificationChannel(channelId)
-
-            Log.d(TAG, "Deleted channel: $channelId for notification: $notificationId")
+            try {
+                notificationManager?.deleteNotificationChannel(channelId)
+                Log.d(TAG, "Deleted channel: $channelId for notification: $notificationId")
+            } catch (e: SecurityException) {
+                Log.e(TAG, "Not allowed to delete channel $channelId: still tied to foreground service", e)
+            }
         }
     }
 
@@ -319,7 +322,17 @@ class LiveStopWatchService : Service() {
             isRunning = false
             handler.removeCallbacks(runnable)
             timerStates.remove(id)
-            getSystemService(NotificationManager::class.java)?.cancel(id)
+            
+            if (timerStates.isEmpty()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } else {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
+                }
+            } else {
+                getSystemService(NotificationManager::class.java)?.cancel(id)
+            }
 
             // ✅ Delete the channel when notification is stopped
             deleteChannelForNotification(id)
