@@ -48,6 +48,17 @@
                 android:value="task" />
         </service>
 
+        <!-- ✅ Tap In Service -->
+        <service
+            android:name=".LiveTapInService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="tapin" />
+        </service>
+
         <!-- ✅ Notification receiver looks good -->
         <receiver
             android:name=".NotificationDismissedReceiver"

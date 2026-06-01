@@ -23,4 +23,9 @@ interface ApiServices {
     suspend fun postTaskStop(
         @Path("id") id: Int
     ): Response<Any>
+
+    @POST("{id}/stop")
+    suspend fun postTapInStop(
+        @Path("id") id: Int
+    ): Response<Any>
 }

@@ -53,10 +53,11 @@ class ExpoLiveUpdatesModule : Module() {
                 "stopwatch" -> LiveStopWatchService::class.java
                 "timer" -> LiveTimerService::class.java
                 "task" -> LiveTaskService::class.java
+                "tapin" -> LiveTapInService::class.java
                 else -> throw CodedException("Invalid mode: ${state.mode}")
             }
             when (state.mode) {
-                "stopwatch", "timer", "task" -> {
+                "stopwatch", "timer", "task", "tapin" -> {
                     Log.d(MODULE_TAG, "Mode is ${state.mode} - starting service")
 
                     try {
@@ -64,6 +65,7 @@ class ExpoLiveUpdatesModule : Module() {
                             "stopwatch" -> state.stopwatch?.id
                             "timer" -> state.timer?.id
                             "task" -> state.task?.id
+                            "tapin" -> state.tapIn?.id
                             else -> null
                         }
 
@@ -137,6 +139,9 @@ class ExpoLiveUpdatesModule : Module() {
                 }
                 "task" -> {
                     Log.d(MODULE_TAG, "Task update handled separately or simply ignored")
+                }
+                "tapin" -> {
+                    Log.d(MODULE_TAG, "TapIn update handled separately or simply ignored")
                 }
                 else -> {
                     state.timer?.let { timer ->
@@ -232,6 +237,7 @@ class ExpoLiveUpdatesModule : Module() {
                 "stopwatch" -> LiveStopWatchService.ACTION_START
                 "timer" -> LiveTimerService.ACTION_START
                 "task" -> LiveTaskService.ACTION_START
+                "tapin" -> LiveTapInService.ACTION_START
                 else -> ""
             }
 
@@ -285,6 +291,17 @@ class ExpoLiveUpdatesModule : Module() {
                 putExtra(LiveTaskService.EXTRA_CONFIG, config)
 
                 Log.d(MODULE_TAG, "✅ Task extras added")
+            }
+
+            state.tapIn?.let { tapIn ->
+                Log.d(MODULE_TAG, "TapIn data: ${tapIn}")
+                putExtra(LiveTapInService.EXTRA_START_DATE, tapIn.startDate ?: System.currentTimeMillis())
+                putExtra(LiveTapInService.EXTRA_TITLE, state.title)
+                putExtra(LiveTapInService.EXTRA_SUBTITLE, state.subtitle)
+                putExtra(LiveTapInService.EXTRA_NOTIFICATION_ID, notificationId)
+                putExtra(LiveTapInService.EXTRA_CONFIG, config)
+
+                Log.d(MODULE_TAG, "✅ TapIn extras added")
             }
         }
 
