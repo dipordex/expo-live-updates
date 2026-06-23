@@ -403,9 +403,6 @@ class ExpoLiveUpdatesModule : Module() {
 
 
         val action = when {
-            !timer.isRunning!! && timer.remaining!! == 0.0-> {
-                LiveTimerService.ACTION_STOP
-            }
             timer.isRunning!! && timer.duration!! > 0.00-> {
                 LiveTimerService.ACTION_RESUME
             }

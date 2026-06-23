@@ -249,19 +249,14 @@ class LiveTimerService : Service() {
         state.isRunning = false
         handler.removeCallbacks(state.runnable)
 
-        if (state.remaining > 0.0 || fromNotification) {
-            timerStates.remove(id)
-            Log.d(TAG, "Timer state removed for ID: $id")
+        timerStates.remove(id)
+        Log.d(TAG, "Timer state removed for ID: $id")
 
-            if (state.remaining != 0.0) {
-                // Cancel the notification
-                getSystemService(NotificationManager::class.java)?.cancel(id)
-                Log.d(TAG, "Notification cancelled for ID: $id")
-            }
+        getSystemService(NotificationManager::class.java)?.cancel(id)
+        Log.d(TAG, "Notification cancelled for ID: $id")
 
-            if (fromNotification) {
-                NotificationStateTriggredEventEmitter.emit(id, "stop", "timer")
-            }
+        if (fromNotification) {
+            NotificationStateTriggredEventEmitter.emit(id, "stop", "timer")
         }
 
         // If this was the foreground notification, update or stop foreground
